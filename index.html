@@ -353,14 +353,14 @@ function renderSell(){
   let html='';
   for(let g=0;g<10;g++){
     html+=`<tr class="bg-cyber-black border-b-2 border-cyber-cyan/60"><th class="p-2 text-left text-sm text-cyber-cyan">第 ${g+1} 組</th>`+slots.map(s=>`<td class="p-1.5 border-r border-cyber-border/50 text-gray-300 sub font-bold truncate">${esc(s.symbol||'--')}</td>`).join('')+'</tr>';
-    html+=row('賣出日期',g,'sell','date',(v,i,group,type)=>`<input type="date" value="${esc(v.date)}" oninput="onTrade(${i},${group},'${type}','date',this.value)" style="color-scheme:dark" class="${SELL_IN}">`);
-    html+=row('賣出價格',g,'sell','price',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.price)}" oninput="onTrade(${i},${group},'${type}','price',this.value)" class="${SELL_IN}">`);
-    html+=row('賣出張數',g,'sell','lots',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.lots)}" oninput="onTrade(${i},${group},'${type}','lots',this.value)" class="${SELL_IN}">`);
-    html+=row('賣出金額(收入 +)',g,'sell','amount',(v,i,group,type)=>{const amount=(v.amount===''||v.amount==null)?'':Math.abs(Number(v.amount));return `<div id="sell-amt-${group}-${i}" class="py-1 text-sm font-black text-cyber-green">${amount===''?'--':amount.toLocaleString('en-US')}</div>`});
     html+=row('買進日期',g,'buy','date',(v,i,group,type)=>`<input type="date" value="${esc(v.date)}" oninput="onTrade(${i},${group},'${type}','date',this.value)" style="color-scheme:dark" class="${SELL_IN}">`);
     html+=row('買進價格',g,'buy','price',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.price)}" oninput="onTrade(${i},${group},'${type}','price',this.value)" class="${SELL_IN}">`);
     html+=row('買進張數',g,'buy','lots',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.lots)}" oninput="onTrade(${i},${group},'${type}','lots',this.value)" class="${SELL_IN}">`);
     html+=row('買進金額(支出 −)',g,'buy','amount',(v,i,group,type)=>{const amount=(v.amount===''||v.amount==null)?'':-Math.abs(Number(v.amount));return `<div id="buy-amt-${group}-${i}" class="py-1 text-sm font-black text-cyber-red">${amount===''?'--':amount.toLocaleString('en-US')}</div>`});
+    html+=row('賣出日期',g,'sell','date',(v,i,group,type)=>`<input type="date" value="${esc(v.date)}" oninput="onTrade(${i},${group},'${type}','date',this.value)" style="color-scheme:dark" class="${SELL_IN}">`);
+    html+=row('賣出價格',g,'sell','price',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.price)}" oninput="onTrade(${i},${group},'${type}','price',this.value)" class="${SELL_IN}">`);
+    html+=row('賣出張數',g,'sell','lots',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.lots)}" oninput="onTrade(${i},${group},'${type}','lots',this.value)" class="${SELL_IN}">`);
+    html+=row('賣出金額(收入 +)',g,'sell','amount',(v,i,group,type)=>{const amount=(v.amount===''||v.amount==null)?'':Math.abs(Number(v.amount));return `<div id="sell-amt-${group}-${i}" class="py-1 text-sm font-black text-cyber-green">${amount===''?'--':amount.toLocaleString('en-US')}</div>`});
   }
   document.getElementById('trade-body').innerHTML=html;
 }
