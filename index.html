@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蜘蛛作戰法 - Spider Matrix</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={darkMode:'class',theme:{extend:{colors:{cyber:{black:'#030508',card:'#0a0e17',border:'#1a2338',cyan:'#00f0ff',purple:'#7000ff',magenta:'#ff007f',red:'#ff2e63',green:'#00ff66'}},fontFamily:{mono:['Courier New','Consolas','monospace']}}}}
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+body{background:#030508 radial-gradient(circle at 50% 0%,rgba(112,0,255,.2),transparent 75%);color:#e2e8f0;min-height:100vh;font-size:1.2rem}
+.sub{font-size:.9em;line-height:1.5}
+@keyframes pulseRed{
+ 0%,100%{background-color:#4a0014;color:#fff;box-shadow:inset 0 0 0 2px #ff2e63,0 0 22px rgba(255,46,99,.9)}
+ 50%{background-color:#2b000b;color:#ff2e63;box-shadow:inset 0 0 0 2px #ff2e63,0 0 10px rgba(255,46,99,.5)}
+}
+.hit{animation:pulseRed 1.4s infinite ease-in-out;font-weight:900}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:#030508}::-webkit-scrollbar-thumb{background:#1a2338;border-radius:5px}
+</style>
+</head>
+<body class="font-mono flex flex-col min-h-screen pb-10">
+<header class="border-b border-cyber-border bg-cyber-card/90 backdrop-blur-md sticky top-0 z-50 px-4 py-2">
+ <div class="max-w-[98rem] mx-auto flex flex-col md:flex-row items-center justify-between gap-2">
+  <div>
+   <h1 class="text-2xl sm:text-3xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyber-cyan via-white to-cyber-magenta">蜘蛛作戰法</h1>
+   <p class="text-gray-400 sub mt-1">TW / US / CRYPTO MATRIX ・ <span id="last-update">--</span></p>
+  </div>
+  <div class="flex items-center gap-2 flex-wrap justify-center">
+   <div class="px-4 py-2 rounded-lg border border-cyber-border bg-cyber-black flex items-center gap-2">
+    <span id="dot" class="w-3 h-3 rounded-full bg-cyber-green"></span><span id="stext" class="text-cyber-green font-bold text-sm">待命</span>
+   </div>
+   <button onclick="resetAll()" class="px-3 py-2 text-sm font-bold rounded-xl border border-red-500/40 text-red-400 hover:bg-red-500/15"><i class="fa-solid fa-trash-can mr-1"></i>重置</button>
+   <button onclick="fetchAll()" class="px-3 py-2 font-bold rounded-xl border border-cyber-cyan text-cyber-cyan hover:bg-cyber-cyan/20 active:scale-95 transition"><i id="sync" class="fa-solid fa-arrows-rotate mr-1"></i>抓取最新價</button>
+   <button onclick="setKey()" class="px-3 py-2 text-sm font-bold rounded-xl border border-cyber-purple text-purple-300 hover:bg-cyber-purple/20"><i class="fa-solid fa-key mr-1"></i>美股 Key</button>
+  </div>
+ </div>
+</header>
+
+<main class="max-w-[98rem] mx-auto px-3 sm:px-5 py-3 w-full flex-grow">
+ <div class="overflow-x-auto mb-4">
+  <div class="min-w-[1100px] space-y-4">
+   <div class="bg-cyber-card rounded-2xl border border-cyber-border overflow-hidden shadow-2xl">
+    <table class="w-full table-fixed border-collapse text-center">
+     <colgroup><col style="width:7.5rem"><col><col><col><col><col><col><col><col></colgroup>
+     <tbody id="tbody"></tbody>
+    </table>
+   </div>
+   <div class="bg-cyber-card rounded-2xl border border-cyber-purple/50 overflow-hidden shadow-2xl">
+    <table class="w-full table-fixed border-collapse text-center">
+     <colgroup><col style="width:7.5rem"><col><col><col><col><col><col><col><col></colgroup>
+     <tbody id="trade-body"></tbody>
+    </table>
+   </div>
+  </div>
+ </div>
+
+ <div class="p-6 rounded-2xl bg-cyber-card border border-cyber-border">
+  <h2 class="text-xl font-black text-cyber-cyan mb-2"><i class="fa-solid fa-network-wired mr-2"></i>操作說明</h2>
+  <div class="text-gray-200 sub space-y-1.5">
+   <p>1. <b class="text-white">台股</b>：輸入代號即可，支援一般股票與含英文字尾的 ETF（例：2330、0050、<b>00980A</b>、6223）。自動判斷上市 / 上櫃。</p>
+   <p>2. <b class="text-white">美股</b>：例 AAPL、NVDA、TSLA。<b class="text-white">加密貨幣</b>：例 BTC、ETH、SOL、ADA、BTCUSDT。</p>
+   <p>3. <b class="text-white">價格來源</b>：台股優先用 FinMind（日收盤，免 Key）→ Yahoo（盤中）→ TWSE / TPEx 開放資料；美股建議填免費 Twelve Data Key（右上「美股 Key」）；加密幣用 Binance → Yahoo。名稱旁會標示來源。</p>
+   <p>4. <b class="text-cyber-green">基準價</b>：首次查到價格時自動帶入並固定，不會隨現價漂移。可按「自訂」輸入，或按「=現價」重設。網格為 +25% ~ -35%，每階 5%。</p>
+   <p>5. <b class="text-cyber-red">警示</b>：現價與某階價格相差 ±<span id="th-txt"></span>% 內，該格紅色呼吸燈。（階距 5%，所以相鄰階可能同時亮。）</p>
+  </div>
+ </div>
+</main>
+<footer class="text-center text-gray-500 sub mt-6">蜘蛛作戰法 Spider Matrix &copy; 2026</footer>
+
+<script>
+const THRESH=0.07;               // 警示範圍 ±7%（可自行調整，例如 0.025）
+const KEY='SPIDER_MATRIX_V4';
+const LEVELS=[25,20,15,10,5,0,-5,-10,-15,-20,-25,-30,-35].map(p=>({
+  pct:p/100,
+  label:p>0?`+${p}% (目標 ${p/5})`:p===0?'基準價格 (0%)':`${p}% (支撐 ${-p/5})`
+}));
+const blank=()=>({symbol:'',name:'',src:'',basePrice:null,latestPrice:null});
+const DEFAULTS=['2330','0050','00980A','AAPL','NVDA','TSLA','BTC','ETH'].map(s=>({...blank(),symbol:s}));
+const CRYPTO=['BTC','ETH','SOL','XRP','DOGE','BNB','ADA','AVAX','LINK','DOT','TRX','LTC','SUI','PEPE','TON','SHIB'];
+let slots=[];
+/* 修正：每格查詢版本，用來避免較早發出的請求覆蓋較新的代號資料 */
+let slotRequestVersion=Array(8).fill(0);
+document.getElementById('th-txt').textContent=(THRESH*100).toFixed(1).replace(/\.0$/,'');
+
+/* ---------- 工具 ---------- */
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function fmt(n){
+  if(n==null||isNaN(n))return '--';
+  if(n>=1000)return n.toLocaleString('en-US',{maximumFractionDigits:0});
+  if(n>=100)return n.toFixed(1);
+  if(n>=10)return n.toFixed(2);
+  if(n>=1)return n.toFixed(3);
+  return Number(n.toPrecision(4)).toString();
+}
+const emptyTrade=()=>({date:'',price:'',lots:'',amount:''});
+const emptyTradeGroup=()=>({sell:emptyTrade(),buy:emptyTrade()});
+function load(){
+  try{slots=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){slots=[]}
+  if(!Array.isArray(slots)||!slots.length)slots=JSON.parse(JSON.stringify(DEFAULTS));
+  while(slots.length<8)slots.push(blank());
+  slots=slots.slice(0,8);
+  // 舊版賣出/買進紀錄自動保留到第 1 組，其餘新增 9 組
+  slots=slots.map(s=>{
+    const t=Array.isArray(s.trades)?s.trades:[];
+    if(!t.length&&(s.sell||s.buy))t.push({sell:s.sell||emptyTrade(),buy:s.buy||emptyTrade()});
+    while(t.length<10)t.push(emptyTradeGroup());
+    return {...s,trades:t.slice(0,10)};
+  });
+  save();
+  slotRequestVersion=Array(8).fill(0);
+}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(slots))}catch(e){}};
+function resetAll(){
+  if(!confirm('確定要重置所有代號與基準價嗎？'))return;
+  slotRequestVersion=slotRequestVersion.map(v=>v+1);
+  slots=JSON.parse(JSON.stringify(DEFAULTS));save();render();fetchAll();
+}
+function status(state,text){
+  const d=document.getElementById('dot'),t=document.getElementById('stext');
+  const c={RUN:'cyan',OK:'green',WARN:'yellow',ERR:'red'}[state];
+  const col={cyan:'text-cyber-cyan',green:'text-cyber-green',yellow:'text-yellow-400',red:'text-cyber-red'}[c];
+  const bg={cyan:'bg-cyber-cyan animate-ping',green:'bg-cyber-green animate-pulse',yellow:'bg-yellow-400',red:'bg-cyber-red'}[c];
+  d.className='w-3 h-3 rounded-full '+bg;t.className=col+' font-bold text-sm';t.textContent=text;
+}
+
+/* ---------- 抓價引擎 ---------- */
+const PROXIES=[
+  u=>u,
+  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  u=>`https://r.jina.ai/${u}`
+];
+async function fetchJSON(url){
+  for(const p of PROXIES){
+    const ac=new AbortController(),to=setTimeout(()=>ac.abort(),8000);
+    try{
+      const r=await fetch(p(url),{signal:ac.signal,cache:'no-store'});
+      if(r.ok){
+        const t=await r.text();clearTimeout(to);
+        try{return JSON.parse(t)}catch(e){
+          const a=t.search(/[\[{]/),b=Math.max(t.lastIndexOf('}'),t.lastIndexOf(']'));
+          if(a>=0&&b>a)try{return JSON.parse(t.slice(a,b+1))}catch(e2){}
+        }
+      }
+    }catch(e){}
+    clearTimeout(to);
+  }
+  return null;
+}
+async function yahoo(sym){
+  for(const h of ['query1','query2']){
+    const d=await fetchJSON(`https://${h}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`);
+    const m=d?.chart?.result?.[0]?.meta;
+    if(m&&m.regularMarketPrice>0)return{name:m.shortName||m.longName||m.symbol,price:Number(m.regularMarketPrice)};
+  }
+  return null;
+}
+// TWSE / TPEx 開放資料（整份只下載一次）
+let twseP=null,tpexP=null;
+const getTWSE=()=>twseP??=fetchJSON('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL');
+const getTPEx=()=>tpexP??=fetchJSON('https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes');
+const num=v=>parseFloat(String(v??'').replace(/,/g,''));
+async function openApi(code){
+  const a=await getTWSE();
+  if(Array.isArray(a)){
+    const f=a.find(x=>x.Code===code);
+    if(f){const p=num(f.ClosingPrice);if(p>0)return{name:f.Name||code,price:p,close:true}; return{name:f.Name||code,price:null}}
+  }
+  const b=await getTPEx();
+  if(Array.isArray(b)){
+    const f=b.find(x=>(x.SecuritiesCompanyCode||x.Code)===code);
+    if(f){const p=num(f.Close);if(p>0)return{name:f.CompanyName||f.Name||code,price:p,close:true}; return{name:f.CompanyName||code,price:null}}
+  }
+  return null;
+}
+async function finmind(code){
+  const d0=new Date(Date.now()-20*864e5).toISOString().slice(0,10);
+  try{
+    const r=await fetch(`https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=${code}&start_date=${d0}`);
+    if(!r.ok)return null;
+    const j=await r.json();const rows=j?.data||[];
+    const last=rows[rows.length-1];
+    if(!last||!(last.close>0))return null;
+    let name=code;
+    try{
+      const r2=await fetch(`https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockInfo&data_id=${code}`);
+      const j2=await r2.json();name=j2?.data?.[0]?.stock_name||code;
+    }catch(e){}
+    return{name,price:Number(last.close),src:'FinMind '+last.date};
+  }catch(e){return null}
+}
+async function twStock(code){
+  const f=await finmind(code);
+  if(f)return f;
+  const o=await openApi(code);                 // 取得中文名稱 + 收盤價
+  let y=null;
+  for(const suf of ['.TW','.TWO']){y=await yahoo(code+suf);if(y)break}
+  if(y)return{name:o?.name||y.name,price:y.price,src:'Yahoo'};
+  if(o&&o.price)return{name:o.name,price:o.price,src:'收盤價'};
+  return null;
+}
+async function cryptoPrice(sym){
+  const base=sym.replace(/(USDT|-USD)$/,'');
+  for(const h of ['api.binance.com','data-api.binance.vision']){
+    try{
+      const r=await fetch(`https://${h}/api/v3/ticker/price?symbol=${base}USDT`);
+      if(r.ok){const d=await r.json();const p=parseFloat(d.price);if(p>0)return{name:`${base} / USD`,price:p,src:'Binance'}}
+    }catch(e){}
+  }
+  const y=await yahoo(base+'-USD');
+  return y?{name:`${base} / USD`,price:y.price,src:'Yahoo'}:null;
+}
+async function getPrice(raw){
+  const s=raw.trim().toUpperCase();
+  if(!s)return null;
+  if(/^\d{4,6}[A-Z]?$/.test(s))return twStock(s);               // 2330 / 0050 / 00980A
+  if(CRYPTO.includes(s)||/USDT$|-USD$/.test(s))return cryptoPrice(s);
+  const k=localStorage.getItem('TD_KEY');
+  if(k){
+    try{
+      const r=await fetch(`https://api.twelvedata.com/price?symbol=${encodeURIComponent(s)}&apikey=${k}`);
+      const j=await r.json();const p=parseFloat(j.price);
+      if(p>0)return{name:s,price:p,src:'TwelveData'};
+    }catch(e){}
+  }
+  const y=await yahoo(s);
+  return y?{...y,src:'Yahoo'}:null;
+}
+function setKey(){
+  const v=prompt('輸入 Twelve Data 免費 API Key（用於美股；到 twelvedata.com 註冊取得）。留空可清除：',localStorage.getItem('TD_KEY')||'');
+  if(v===null)return;
+  v.trim()?localStorage.setItem('TD_KEY',v.trim()):localStorage.removeItem('TD_KEY');
+  fetchAll();
+}
+
+/* ---------- 操作 ---------- */
+function apply(i,r){
+  const s=slots[i];
+  s.latestPrice=r.price;s.name=r.name||s.name;s.src=r.src||'';
+  if(!(s.basePrice>0))s.basePrice=r.price;      // 基準價只在空白時自動帶入
+}
+async function fetchAll(){
+  const versions=slots.map((s,i)=>({symbol:s.symbol,version:++slotRequestVersion[i]}));
+  status('RUN','抓取中…');
+  document.getElementById('sync').classList.add('fa-spin');
+  twseP=tpexP=null;
+  let ok=0,fail=[];
+  await Promise.all(slots.map(async(s,i)=>{
+    if(!s.symbol)return;
+    const symbol=s.symbol;
+    const version=versions[i].version;
+    const r=await getPrice(symbol);
+    if(version!==slotRequestVersion[i]||slots[i].symbol!==symbol)return;
+    if(r){apply(i,r);ok++}else fail.push(symbol);
+  }));
+  save();render();
+  document.getElementById('sync').classList.remove('fa-spin');
+  const t=new Date().toLocaleTimeString('zh-TW',{hour12:false});
+  document.getElementById('last-update').textContent='更新 '+t;
+  if(!ok&&fail.length)status('ERR','全部失敗，請檢查網路');
+  else if(fail.length)status('WARN',`${ok} 成功 / 失敗：${fail.join(', ')}`);
+  else status('OK',`已更新 ${t}`);
+}
+async function onSym(i,v){
+  v=v.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g,'');
+  const version=++slotRequestVersion[i];
+  slots[i]={...blank(),symbol:v,trades:slots[i].trades};            // 清掉舊代號的價格/名稱/基準價
+  save();render();
+  if(!v)return;
+  status('RUN',`查詢 ${v}…`);
+  const r=await getPrice(v);
+  if(version!==slotRequestVersion[i]||slots[i].symbol!==v)return;
+  if(r){apply(i,r);status('OK',`${v} 已查獲（${r.src}）`)}else status('ERR',`查不到 ${v}`);
+  save();render();
+}
+async function refreshOne(i){
+  const s=slots[i];if(!s.symbol)return;
+  const symbol=s.symbol;
+  const version=++slotRequestVersion[i];
+  status('RUN',`更新 ${symbol}…`);
+  const r=await getPrice(symbol);
+  if(version!==slotRequestVersion[i]||slots[i].symbol!==symbol)return;
+  if(r){apply(i,r);status('OK',`${symbol} 已更新（${r.src}）`)}else status('ERR',`${symbol} 更新失敗`);
+  save();render();
+}
+function onBase(i,v){
+  const p=parseFloat(v);
+  slots[i].basePrice=p>0?p:null;
+  if(p>0&&slots[i].latestPrice==null)slots[i].latestPrice=p;
+  save();render();
+}
+function baseToLatest(i){
+  if(slots[i].latestPrice>0){slots[i].basePrice=slots[i].latestPrice;save();render()}
+}
+const focusBase=i=>{const el=document.getElementById('base-'+i);el.focus();el.select()};
+
+/* ---------- 繪製 ---------- */
+function render(){
+  const tb=document.getElementById('tbody');
+  let h='';
+  // 第一排：現價
+  h+=`<tr class="bg-cyber-black/95 border-b-2 border-cyber-cyan/50"><th class="p-2 text-left text-sm border-r border-cyber-border"><div class="text-gray-400 sub">第一排</div><div class="text-cyber-cyan font-black"><i class="fa-solid fa-chart-line mr-1"></i>最新現價</div></th>`;
+  slots.forEach((s,i)=>{
+    let d='--',c='text-gray-400';
+    if(s.latestPrice&&s.basePrice){const p=(s.latestPrice-s.basePrice)/s.basePrice*100;d=(p>=0?'+':'')+p.toFixed(2)+'%';c=p>=0?'text-cyber-green':'text-cyber-red'}
+    h+=`<td class="p-3 border-r border-cyber-border/50"><div class="sub text-gray-400 font-extrabold">${esc(s.symbol||'#'+(i+1))}</div><div class="text-xl font-black text-white my-1">${fmt(s.latestPrice)}</div><div class="sub font-bold ${c}">${d}</div></td>`;
+  });
+  h+='</tr>';
+  // 第二排：代號 / 基準價
+  h+=`<tr class="bg-cyber-black/70 border-b-2 border-cyber-border"><th class="p-2 text-left text-sm border-r border-cyber-border"><div class="text-gray-400 sub">第二排</div><div class="text-purple-300 font-black"><i class="fa-solid fa-sliders mr-1"></i>代號/基準價</div></th>`;
+  slots.forEach((s,i)=>{
+    h+=`<td class="p-3 border-r border-cyber-border/50 align-top"><div class="space-y-2">
+     <div class="flex justify-between text-sm"><b class="text-cyber-cyan">#${i+1}</b><button onclick="refreshOne(${i})" class="text-gray-400 hover:text-cyber-cyan" title="單獨更新"><i class="fa-solid fa-rotate-right"></i></button></div>
+     <input value="${esc(s.symbol)}" onchange="onSym(${i},this.value)" placeholder="2330 / 00980A / AAPL" class="w-full bg-cyber-black border border-cyber-border rounded-lg px-2 py-2 text-lg text-center font-black text-white uppercase focus:outline-none focus:border-cyber-cyan">
+     <div class="truncate text-gray-200 font-extrabold sub" title="${esc(s.name)}">${esc(s.name)||(s.symbol?'尚未取得':'未設定')}</div>
+     <div class="text-gray-500 sub">${esc(s.src)}</div>
+     <div class="flex justify-between sub text-gray-400 pt-1 border-t border-cyber-border/60"><span>基準價</span><span><button onclick="focusBase(${i})" class="text-cyber-cyan hover:underline">自訂</button> <button onclick="baseToLatest(${i})" class="text-cyber-magenta hover:underline">=現價</button></span></div>
+     <input id="base-${i}" type="number" step="any" value="${s.basePrice??''}" onchange="onBase(${i},this.value)" placeholder="基準價" class="w-full bg-cyber-black/80 border border-cyber-purple/60 rounded px-2 py-1 text-base font-bold text-cyber-cyan text-center focus:outline-none focus:border-cyber-magenta">
+    </div></td>`;
+  });
+  h+='</tr>';
+  // 13 階網格
+  LEVELS.forEach(L=>{
+    const cls=L.pct===0?'bg-cyber-purple/30 border-y-2 border-cyber-cyan/70 font-black':L.pct>0?'bg-emerald-950/20':'bg-rose-950/20';
+    const tc=L.pct===0?'text-cyber-cyan':L.pct>0?'text-emerald-400':'text-rose-400';
+    h+=`<tr class="${cls}"><th class="p-2 text-left text-sm border-r border-cyber-border sticky left-0 bg-cyber-card/95 z-10 ${tc}">${L.label}</th>`;
+    slots.forEach(s=>{
+      if(s.basePrice>0){
+        const g=s.basePrice*(1+L.pct);
+        let hit='',tt='';
+        if(s.latestPrice>0){
+          const r=Math.abs(s.latestPrice-g)/g;
+          if(r<=THRESH){hit='hit';tt=` title="現價 ${fmt(s.latestPrice)} 與本階 ${fmt(g)} 相差 ${(r*100).toFixed(2)}%"`}
+        }
+        h+=`<td class="p-3 border-r border-cyber-border/40 text-sm ${hit}"${tt}>${fmt(g)}</td>`;
+      }else h+=`<td class="p-3 border-r border-cyber-border/40 text-gray-600">--</td>`;
+    });
+    h+='</tr>';
+  });
+  tb.innerHTML=h;
+  renderSell();
+}
+const SELL_IN='w-full bg-cyber-black/80 border border-cyber-purple/60 rounded px-1.5 py-1 text-sm text-center text-white focus:outline-none focus:border-cyber-magenta';
+function renderSell(){
+  const th=(t,c)=>`<th class="p-2 text-left text-sm border-r border-cyber-border sticky left-0 bg-cyber-card/95 z-10 ${c}">${t}</th>`;
+  const row=(label,group,type,field,cell)=>`<tr class="border-b border-cyber-border/40">${th(label,type==='sell'?'text-purple-300':'text-cyber-green')}`+slots.map((s,i)=>{
+    const v=s.trades?.[group]?.[type]||emptyTrade();
+    return `<td class="p-1.5 border-r border-cyber-border/40">${cell(v,i,group,type)}</td>`;
+  }).join('')+'</tr>';
+  let html='';
+  for(let g=0;g<10;g++){
+    html+=`<tr class="bg-cyber-black border-b-2 border-cyber-cyan/60"><th class="p-2 text-left text-sm text-cyber-cyan">第 ${g+1} 組</th>`+slots.map(s=>`<td class="p-1.5 border-r border-cyber-border/50 text-gray-300 sub font-bold truncate">${esc(s.symbol||'--')}</td>`).join('')+'</tr>';
+    html+=row('賣出日期',g,'sell','date',(v,i,group,type)=>`<input type="date" value="${esc(v.date)}" oninput="onTrade(${i},${group},'${type}','date',this.value)" style="color-scheme:dark" class="${SELL_IN}">`);
+    html+=row('賣出價格',g,'sell','price',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.price)}" oninput="onTrade(${i},${group},'${type}','price',this.value)" class="${SELL_IN}">`);
+    html+=row('賣出張數',g,'sell','lots',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.lots)}" oninput="onTrade(${i},${group},'${type}','lots',this.value)" class="${SELL_IN}">`);
+    html+=row('賣出金額(收入 +)',g,'sell','amount',(v,i,group,type)=>{const amount=(v.amount===''||v.amount==null)?'':Math.abs(Number(v.amount));return `<div id="sell-amt-${group}-${i}" class="py-1 text-sm font-black text-cyber-green">${amount===''?'--':amount.toLocaleString('en-US')}</div>`});
+    html+=row('買進日期',g,'buy','date',(v,i,group,type)=>`<input type="date" value="${esc(v.date)}" oninput="onTrade(${i},${group},'${type}','date',this.value)" style="color-scheme:dark" class="${SELL_IN}">`);
+    html+=row('買進價格',g,'buy','price',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.price)}" oninput="onTrade(${i},${group},'${type}','price',this.value)" class="${SELL_IN}">`);
+    html+=row('買進張數',g,'buy','lots',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.lots)}" oninput="onTrade(${i},${group},'${type}','lots',this.value)" class="${SELL_IN}">`);
+    html+=row('買進金額(支出 −)',g,'buy','amount',(v,i,group,type)=>{const amount=(v.amount===''||v.amount==null)?'':-Math.abs(Number(v.amount));return `<div id="buy-amt-${group}-${i}" class="py-1 text-sm font-black text-cyber-red">${amount===''?'--':amount.toLocaleString('en-US')}</div>`});
+  }
+  document.getElementById('trade-body').innerHTML=html;
+}
+function onTrade(i,group,type,k,v){
+  const s=slots[i];
+  if(!Array.isArray(s.trades))s.trades=[];
+  while(s.trades.length<10)s.trades.push(emptyTradeGroup());
+  const record=s.trades[group][type]||(s.trades[group][type]=emptyTrade());
+  record[k]=v;
+  const p=parseFloat(record.price),l=parseFloat(record.lots);
+  const total=(p>0&&l>0)?Math.round(p*l*1000):'';
+  record.amount=total===''?'':(type==='sell'?total:-total);
+  const el=document.getElementById(`${type}-amt-${group}-${i}`);
+  if(el)el.textContent=record.amount===''?'--':Number(record.amount).toLocaleString('en-US');
+  save();
+}
+function onSell(i,k,v){onTrade(i,0,'sell',k,v)}
+
+window.onload=()=>{load();render();fetchAll();setInterval(fetchAll,60000)};
+</script>
+</body>
+</html>
