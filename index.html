@@ -361,8 +361,44 @@ function renderSell(){
     html+=row('賣出價格',g,'sell','price',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.price)}" oninput="onTrade(${i},${group},'${type}','price',this.value)" class="${SELL_IN}">`);
     html+=row('賣出張數',g,'sell','lots',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.lots)}" oninput="onTrade(${i},${group},'${type}','lots',this.value)" class="${SELL_IN}">`);
     html+=row('賣出金額(收入 +)',g,'sell','amount',(v,i,group,type)=>{const amount=(v.amount===''||v.amount==null)?'':Math.abs(Number(v.amount));return `<div id="sell-amt-${group}-${i}" class="py-1 text-sm font-black text-cyber-green">${amount===''?'--':amount.toLocaleString('en-US')}</div>`});
+    html+=`<tr class="border-b-2 border-cyber-cyan/60 bg-cyber-purple/10"><th class="p-2 text-left text-sm border-r border-cyber-border sticky left-0 bg-cyber-card/95 z-10 text-cyber-cyan">買賣盈虧小計</th>`+slots.map((s,i)=>{
+      const trade=s.trades?.[g]||emptyTradeGroup();
+      const buy=trade.buy?.amount, sell=trade.sell?.amount;
+      const hasBuy=buy!==''&&buy!=null&&Number.isFinite(Number(buy));
+      const hasSell=sell!==''&&sell!=null&&Number.isFinite(Number(sell));
+      const total=(hasBuy?Number(buy):0)+(hasSell?Number(sell):0);
+      const shown=(hasBuy||hasSell)?total.toLocaleString('en-US',{maximumFractionDigits:2}):'--';
+      const color=total>0?'text-cyber-green':total<0?'text-cyber-red':'text-gray-300';
+      return `<td class="p-1.5 border-r border-cyber-border/40 text-center"><div id="trade-subtotal-${g}-${i}" class="py-1 text-sm font-black ${color}">${shown}</div></td>`;
+    }).join('')+'</tr>';
   }
+  // 10 組交易累計盈虧
+  html+=`<tr class="border-t-4 border-cyber-magenta bg-cyber-black"><th class="p-3 text-left text-sm sticky left-0 bg-cyber-card z-10 text-cyber-magenta font-black">10組交易總盈虧</th>`+slots.map((s,i)=>{
+    const result=calcSlotProfit(s);
+    const shown=result.hasData?result.total.toLocaleString('en-US',{maximumFractionDigits:2}):'--';
+    const color=result.total>0?'text-cyber-green':result.total<0?'text-cyber-red':'text-gray-300';
+    return `<td class="p-2 border-r border-cyber-border/40 text-center"><div id="trade-grand-total-${i}" class="py-2 text-base font-black ${color}">${shown}</div></td>`;
+  }).join('')+'</tr>';
   document.getElementById('trade-body').innerHTML=html;
+}
+function calcSlotProfit(s){
+  let total=0,hasData=false;
+  for(let g=0;g<10;g++){
+    const trade=s.trades?.[g]||emptyTradeGroup();
+    for(const type of ['buy','sell']){
+      const amount=trade[type]?.amount;
+      if(amount!==''&&amount!=null&&Number.isFinite(Number(amount))){total+=Number(amount);hasData=true;}
+    }
+  }
+  return {total,hasData};
+}
+function updateGrandTotal(i){
+  const el=document.getElementById(`trade-grand-total-${i}`);
+  if(!el)return;
+  const result=calcSlotProfit(slots[i]);
+  el.textContent=result.hasData?result.total.toLocaleString('en-US',{maximumFractionDigits:2}):'--';
+  el.classList.remove('text-cyber-green','text-cyber-red','text-gray-300');
+  el.classList.add(result.total>0?'text-cyber-green':result.total<0?'text-cyber-red':'text-gray-300');
 }
 function onTrade(i,group,type,k,v){
   const s=slots[i];
@@ -374,7 +410,19 @@ function onTrade(i,group,type,k,v){
   const total=(p>0&&l>0)?Math.round(p*l*1000):'';
   record.amount=total===''?'':(type==='sell'?total:-total);
   const el=document.getElementById(`${type}-amt-${group}-${i}`);
-  if(el)el.textContent=record.amount===''?'--':Number(record.amount).toLocaleString('en-US');
+  if(el)el.textContent=record.amount===''?'--':(type==='sell'?Math.abs(Number(record.amount)): -Math.abs(Number(record.amount))).toLocaleString('en-US');
+  const tradeGroup=s.trades[group];
+  const buy=tradeGroup.buy?.amount, sell=tradeGroup.sell?.amount;
+  const hasBuy=buy!==''&&buy!=null&&Number.isFinite(Number(buy));
+  const hasSell=sell!==''&&sell!=null&&Number.isFinite(Number(sell));
+  const subtotal=document.getElementById(`trade-subtotal-${group}-${i}`);
+  if(subtotal){
+    const total=(hasBuy?Number(buy):0)+(hasSell?Number(sell):0);
+    subtotal.textContent=(hasBuy||hasSell)?total.toLocaleString('en-US',{maximumFractionDigits:2}):'--';
+    subtotal.classList.remove('text-cyber-green','text-cyber-red','text-gray-300');
+    subtotal.classList.add(total>0?'text-cyber-green':total<0?'text-cyber-red':'text-gray-300');
+  }
+  updateGrandTotal(i);
   save();
 }
 function onSell(i,k,v){onTrade(i,0,'sell',k,v)}
