@@ -314,11 +314,11 @@ function render(){
   slots.forEach((s,i)=>{
     h+=`<td class="p-3 border-r border-cyber-border/50 align-top"><div class="space-y-2">
      <div class="flex justify-between text-sm"><b class="text-cyber-cyan">#${i+1}</b><button onclick="refreshOne(${i})" class="text-gray-400 hover:text-cyber-cyan" title="單獨更新"><i class="fa-solid fa-rotate-right"></i></button></div>
-     <input value="${esc(s.symbol)}" onchange="onSym(${i},this.value)" placeholder="2330 / 00980A / AAPL" class="w-full bg-cyber-black border border-cyber-border rounded-lg px-2 py-2 text-lg text-center font-black text-white uppercase focus:outline-none focus:border-cyber-cyan">
+     <input value="${esc(s.symbol)}" onfocus="clearOnFocus(this)" onchange="onSym(${i},this.value)" placeholder="2330 / 00980A / AAPL" class="w-full bg-cyber-black border border-cyber-border rounded-lg px-2 py-2 text-lg text-center font-black text-white uppercase focus:outline-none focus:border-cyber-cyan">
      <div class="truncate text-gray-200 font-extrabold sub" title="${esc(s.name)}">${esc(s.name)||(s.symbol?'尚未取得':'未設定')}</div>
      <div class="text-gray-500 sub">${esc(s.src)}</div>
      <div class="flex justify-between sub text-gray-400 pt-1 border-t border-cyber-border/60"><span>基準價</span><span><button onclick="focusBase(${i})" class="text-cyber-cyan hover:underline">自訂</button> <button onclick="baseToLatest(${i})" class="text-cyber-magenta hover:underline">=現價</button></span></div>
-     <input id="base-${i}" type="number" step="any" value="${s.basePrice??''}" onchange="onBase(${i},this.value)" placeholder="基準價" class="w-full bg-cyber-black/80 border border-cyber-purple/60 rounded px-2 py-1 text-base font-bold text-cyber-cyan text-center focus:outline-none focus:border-cyber-magenta">
+     <input id="base-${i}" type="number" step="any" value="${s.basePrice??''}" onfocus="clearOnFocus(this)" onchange="onBase(${i},this.value)" placeholder="基準價" class="w-full bg-cyber-black/80 border border-cyber-purple/60 rounded px-2 py-1 text-base font-bold text-cyber-cyan text-center focus:outline-none focus:border-cyber-magenta">
     </div></td>`;
   });
   h+='</tr>';
@@ -353,21 +353,30 @@ function renderSell(){
   let html='';
   for(let g=0;g<10;g++){
     html+=`<tr class="bg-cyber-black border-b-2 border-cyber-cyan/60"><th class="p-2 text-left text-sm text-cyber-cyan">第 ${g+1} 組</th>`+slots.map(s=>`<td class="p-1.5 border-r border-cyber-border/50 text-gray-300 sub font-bold truncate">${esc(s.symbol||'--')}</td>`).join('')+'</tr>';
-    html+=row('買進日期',g,'buy','date',(v,i,group,type)=>`<input type="date" value="${esc(v.date)}" oninput="onTrade(${i},${group},'${type}','date',this.value)" style="color-scheme:dark" class="${SELL_IN}">`);
-    html+=row('買進價格',g,'buy','price',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.price)}" oninput="onTrade(${i},${group},'${type}','price',this.value)" class="${SELL_IN}">`);
-    html+=row('買進張數',g,'buy','lots',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.lots)}" oninput="onTrade(${i},${group},'${type}','lots',this.value)" class="${SELL_IN}">`);
+    html+=row('買進日期',g,'buy','date',(v,i,group,type)=>`<input type="date" value="${esc(v.date)}" onfocus="clearOnFocus(this)" oninput="onTrade(${i},${group},'${type}','date',this.value)" style="color-scheme:dark" class="${SELL_IN}">`);
+    html+=row('買進價格',g,'buy','price',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.price)}" onfocus="clearOnFocus(this)" oninput="onTrade(${i},${group},'${type}','price',this.value)" class="${SELL_IN}">`);
+    html+=row('買進張數',g,'buy','lots',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.lots)}" onfocus="clearOnFocus(this)" oninput="onTrade(${i},${group},'${type}','lots',this.value)" class="${SELL_IN}">`);
     html+=row('買進金額(支出 −)',g,'buy','amount',(v,i,group,type)=>{const amount=(v.amount===''||v.amount==null)?'':-Math.abs(Number(v.amount));return `<div id="buy-amt-${group}-${i}" class="py-1 text-sm font-black text-cyber-red">${amount===''?'--':amount.toLocaleString('en-US')}</div>`});
-    html+=row('賣出日期',g,'sell','date',(v,i,group,type)=>`<input type="date" value="${esc(v.date)}" oninput="onTrade(${i},${group},'${type}','date',this.value)" style="color-scheme:dark" class="${SELL_IN}">`);
-    html+=row('賣出價格',g,'sell','price',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.price)}" oninput="onTrade(${i},${group},'${type}','price',this.value)" class="${SELL_IN}">`);
-    html+=row('賣出張數',g,'sell','lots',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.lots)}" oninput="onTrade(${i},${group},'${type}','lots',this.value)" class="${SELL_IN}">`);
+    html+=row('賣出日期',g,'sell','date',(v,i,group,type)=>`<input type="date" value="${esc(v.date)}" onfocus="clearOnFocus(this)" oninput="onTrade(${i},${group},'${type}','date',this.value)" style="color-scheme:dark" class="${SELL_IN}">`);
+    html+=row('賣出價格',g,'sell','price',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.price)}" onfocus="clearOnFocus(this)" oninput="onTrade(${i},${group},'${type}','price',this.value)" class="${SELL_IN}">`);
+    html+=row('賣出張數',g,'sell','lots',(v,i,group,type)=>`<input type="number" step="any" value="${esc(v.lots)}" onfocus="clearOnFocus(this)" oninput="onTrade(${i},${group},'${type}','lots',this.value)" class="${SELL_IN}">`);
     html+=row('賣出金額(收入 +)',g,'sell','amount',(v,i,group,type)=>{const amount=(v.amount===''||v.amount==null)?'':Math.abs(Number(v.amount));return `<div id="sell-amt-${group}-${i}" class="py-1 text-sm font-black text-cyber-green">${amount===''?'--':amount.toLocaleString('en-US')}</div>`});
+    html+=`<tr class="border-b border-cyber-border/40 bg-cyber-purple/10"><th class="p-2 text-left text-sm border-r border-cyber-border sticky left-0 bg-cyber-card/95 z-10 text-cyber-cyan">浮虧／浮盈（按目前價格）</th>`+slots.map((s,i)=>{
+      const trade=s.trades?.[g]||emptyTradeGroup();
+      const result=calcFloatingProfit(trade,s.latestPrice);
+      const total=result.total;
+      const subtotalResult=calcGroupProfit(trade);
+      const shown=subtotalResult.hasData?'':(result.hasData?formatSigned(total):'--');
+      const color=total>0?'text-cyber-green':total<0?'text-cyber-red':'text-gray-300';
+      return `<td class="p-1.5 border-r border-cyber-border/40 text-center"><div id="trade-floating-${g}-${i}" class="py-1 text-sm font-black ${color}">${shown}</div></td>`;
+    }).join('')+'</tr>';
     html+=`<tr class="border-b-2 border-cyber-cyan/60 bg-cyber-purple/10"><th class="p-2 text-left text-sm border-r border-cyber-border sticky left-0 bg-cyber-card/95 z-10 text-cyber-cyan">買賣盈虧小計</th>`+slots.map((s,i)=>{
       const trade=s.trades?.[g]||emptyTradeGroup();
       const buy=trade.buy?.amount, sell=trade.sell?.amount;
       const hasBuy=buy!==''&&buy!=null&&Number.isFinite(Number(buy));
       const hasSell=sell!==''&&sell!=null&&Number.isFinite(Number(sell));
-      const total=(hasBuy?Number(buy):0)+(hasSell?Number(sell):0);
-      const shown=(hasBuy||hasSell)?total.toLocaleString('en-US',{maximumFractionDigits:2}):'--';
+      const total=(hasSell?Number(sell):0)-(hasBuy?Math.abs(Number(buy)):0);
+      const shown=hasSell?total.toLocaleString('en-US',{maximumFractionDigits:2}):'';
       const color=total>0?'text-cyber-green':total<0?'text-cyber-red':'text-gray-300';
       return `<td class="p-1.5 border-r border-cyber-border/40 text-center"><div id="trade-subtotal-${g}-${i}" class="py-1 text-sm font-black ${color}">${shown}</div></td>`;
     }).join('')+'</tr>';
@@ -381,14 +390,31 @@ function renderSell(){
   }).join('')+'</tr>';
   document.getElementById('trade-body').innerHTML=html;
 }
+function calcGroupProfit(trade){
+  // 小計：賣出收入－買進支出；尚未填寫賣出金額時不顯示，也不計入總盈虧。
+  const buy=trade?.buy?.amount, sell=trade?.sell?.amount;
+  const hasBuy=buy!==''&&buy!=null&&Number.isFinite(Number(buy));
+  const hasSell=sell!==''&&sell!=null&&Number.isFinite(Number(sell));
+  return {total:(hasSell?Number(sell):0)-(hasBuy?Math.abs(Number(buy)):0),hasData:hasSell};
+}
+function formatSigned(value){
+  const n=Number(value);
+  const formatted=Math.abs(n).toLocaleString('en-US',{maximumFractionDigits:2});
+  return n>0?'+'+formatted:n<0?'-'+formatted:'0';
+}
+function calcFloatingProfit(trade,currentPrice){
+  const buy=trade?.buy||emptyTrade();
+  const bp=Number(buy.price), lots=Number(buy.lots), cp=Number(currentPrice);
+  const hasBuy=buy.price!==''&&buy.price!=null&&buy.lots!==''&&buy.lots!=null&&Number.isFinite(bp)&&Number.isFinite(lots)&&bp>0&&lots>0;
+  const hasCurrent= currentPrice!==''&&currentPrice!=null&&Number.isFinite(cp)&&cp>0;
+  if(!hasBuy||!hasCurrent)return {total:0,hasData:false};
+  return {total:(cp*lots*1000)-(bp*lots*1000),hasData:true};
+}
 function calcSlotProfit(s){
   let total=0,hasData=false;
   for(let g=0;g<10;g++){
-    const trade=s.trades?.[g]||emptyTradeGroup();
-    for(const type of ['buy','sell']){
-      const amount=trade[type]?.amount;
-      if(amount!==''&&amount!=null&&Number.isFinite(Number(amount))){total+=Number(amount);hasData=true;}
-    }
+    const result=calcGroupProfit(s.trades?.[g]||emptyTradeGroup());
+    if(result.hasData){total+=result.total;hasData=true;}
   }
   return {total,hasData};
 }
@@ -399,6 +425,13 @@ function updateGrandTotal(i){
   el.textContent=result.hasData?result.total.toLocaleString('en-US',{maximumFractionDigits:2}):'--';
   el.classList.remove('text-cyber-green','text-cyber-red','text-gray-300');
   el.classList.add(result.total>0?'text-cyber-green':result.total<0?'text-cyber-red':'text-gray-300');
+}
+function clearOnFocus(el){
+  if(!el.dataset.firstFocusCleared){
+    el.dataset.firstFocusCleared='1';
+    el.value='';
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+  }
 }
 function onTrade(i,group,type,k,v){
   const s=slots[i];
@@ -412,15 +445,20 @@ function onTrade(i,group,type,k,v){
   const el=document.getElementById(`${type}-amt-${group}-${i}`);
   if(el)el.textContent=record.amount===''?'--':(type==='sell'?Math.abs(Number(record.amount)): -Math.abs(Number(record.amount))).toLocaleString('en-US');
   const tradeGroup=s.trades[group];
-  const buy=tradeGroup.buy?.amount, sell=tradeGroup.sell?.amount;
-  const hasBuy=buy!==''&&buy!=null&&Number.isFinite(Number(buy));
-  const hasSell=sell!==''&&sell!=null&&Number.isFinite(Number(sell));
+  const result=calcGroupProfit(tradeGroup);
   const subtotal=document.getElementById(`trade-subtotal-${group}-${i}`);
   if(subtotal){
-    const total=(hasBuy?Number(buy):0)+(hasSell?Number(sell):0);
-    subtotal.textContent=(hasBuy||hasSell)?total.toLocaleString('en-US',{maximumFractionDigits:2}):'--';
+    const total=result.total;
+    subtotal.textContent=result.hasData?total.toLocaleString('en-US',{maximumFractionDigits:2}):'';
     subtotal.classList.remove('text-cyber-green','text-cyber-red','text-gray-300');
     subtotal.classList.add(total>0?'text-cyber-green':total<0?'text-cyber-red':'text-gray-300');
+  }
+  const floating=calcFloatingProfit(tradeGroup,s.latestPrice);
+  const floatingEl=document.getElementById(`trade-floating-${group}-${i}`);
+  if(floatingEl){
+    floatingEl.textContent=result.hasData?'':(floating.hasData?formatSigned(floating.total):'--');
+    floatingEl.classList.remove('text-cyber-green','text-cyber-red','text-gray-300');
+    floatingEl.classList.add(floating.total>0?'text-cyber-green':floating.total<0?'text-cyber-red':'text-gray-300');
   }
   updateGrandTotal(i);
   save();
